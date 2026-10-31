@@ -14,9 +14,9 @@ function setup() {
   if (!props.getProperty('ALLOWED_ORIGIN')) props.setProperty('ALLOWED_ORIGIN', 'https://raizes-acamp-sara-pouso-alegre-2026.jp664165.chatgpt.site');
   if (!props.getProperty('RECIPIENTS')) props.setProperty('RECIPIENTS', 'jp664165@gmail.com');
   var sheet = getSheet_();
-  if (!sheet.getLastRow()) sheet.appendRow(['Protocolo','Data da inscrição','Nome completo','Líder','Equipe','Forma de pagamento','Data de pagamento informada','E-mail','Celular','Lote','Valor','Consentimento','Notificação por e-mail']);
+  if (!sheet.getLastRow()) sheet.appendRow(['Protocolo','Data da inscrição','Nome completo','Líder','Equipe','Forma de pagamento','Data de pagamento informada','E-mail','Celular','Lote','Valor','Consentimento','Notificação por e-mail','Tamanho da camiseta']);
   sheet.setFrozenRows(1);
-  sheet.getRange(1,1,1,13).setFontWeight('bold').setBackground('#4d3220').setFontColor('#f3ecdf');
+  sheet.getRange(1,1,1,14).setFontWeight('bold').setBackground('#4d3220').setFontColor('#f3ecdf');
   MailApp.getRemainingDailyQuota();
   console.log('Planilha: https://docs.google.com/spreadsheets/d/' + props.getProperty('SPREADSHEET_ID'));
 }
@@ -35,6 +35,7 @@ function doPost(e) {
     if (!/^[a-f0-9-]{36}$/.test(p.requestId || '')) throw new Error('Protocolo inválido.');
     if (!p.name || p.name.trim().length < 3 || p.name.length > 120 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(p.email || '') || p.email.length > 180 || !/^[0-9()+ .-]{10,20}$/.test(p.phone || '') || p.consent !== 'on') throw new Error('Confira os dados e a autorização.');
     if (!p.leader || !p.leader.trim() || p.leader.length > 120 || !p.team || !p.team.trim() || p.team.length > 100) throw new Error('Informe líder e equipe.');
+    if (['PP','P','M','G','GG','XG','XXG'].indexOf(p.shirtSize) < 0) throw new Error('Selecione o tamanho da camiseta.');
     if (['PIX','Dinheiro','Crédito'].indexOf(p.payment) < 0) throw new Error('Selecione uma forma de pagamento.');
     var today = Utilities.formatDate(new Date(),'America/Sao_Paulo','yyyy-MM-dd');
     if (p.paymentDate && (!/^\d{4}-\d{2}-\d{2}$/.test(p.paymentDate) || isNaN(Date.parse(p.paymentDate)) || new Date(p.paymentDate).toISOString().slice(0,10) !== p.paymentDate || p.paymentDate > today)) throw new Error('Data de pagamento inválida.');
@@ -47,12 +48,12 @@ function doPost(e) {
     if (sheet.getLastRow() > 1 && sheet.getRange(2,1,sheet.getLastRow()-1,1).createTextFinder(p.requestId).matchEntireCell(true).findNext()) { result.ok = true; }
     else {
       var safe = function(v) { return /^[=+@\-]/.test(v) ? "'"+v : v; };
-      sheet.appendRow([p.requestId,new Date(),safe(p.name.trim()),safe(p.leader.trim()),safe(p.team.trim()),p.payment,p.paymentDate || '',safe(p.email.trim()),safe(p.phone),tier,price,'Autorizado em '+new Date().toISOString(),'Pendente']);
+      sheet.appendRow([p.requestId,new Date(),safe(p.name.trim()),safe(p.leader.trim()),safe(p.team.trim()),p.payment,p.paymentDate || '',safe(p.email.trim()),safe(p.phone),tier,price,'Autorizado em '+new Date().toISOString(),'Pendente',p.shirtSize]);
       var row = sheet.getLastRow();
       result.ok = true;
       try {
         var recipients = PropertiesService.getScriptProperties().getProperty('RECIPIENTS') || 'jp664165@gmail.com';
-        MailApp.sendEmail({to:recipients,subject:'Nova solicitação — Acampamento Raízes',body:'Nova solicitação de inscrição (pagamento sujeito à conferência).\n\nProtocolo: '+p.requestId+'\nNome: '+p.name+'\nLíder: '+p.leader+'\nEquipe: '+p.team+'\nData de pagamento informada: '+(p.paymentDate || 'Ainda não informado')+'\nE-mail: '+p.email+'\nCelular: '+p.phone+'\nPagamento: '+p.payment+'\nLote: '+tier+'\nValor: R$ '+price+',00'+(p.payment === 'Dinheiro' ? '\nAcertar na tesouraria da igreja e avisar ao seu líder o pagamento.' : '')+'\n\nPlanilha: https://docs.google.com/spreadsheets/d/'+PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID')});
+        MailApp.sendEmail({to:recipients,subject:'Nova solicitação — Acampamento Raízes',body:'Nova solicitação de inscrição (pagamento sujeito à conferência).\n\nProtocolo: '+p.requestId+'\nNome: '+p.name+'\nLíder: '+p.leader+'\nEquipe: '+p.team+'\nTamanho da camiseta: '+p.shirtSize+'\nData de pagamento informada: '+(p.paymentDate || 'Ainda não informado')+'\nE-mail: '+p.email+'\nCelular: '+p.phone+'\nPagamento: '+p.payment+'\nLote: '+tier+'\nValor: R$ '+price+',00'+(p.payment === 'Dinheiro' ? '\nAcertar na tesouraria da igreja e avisar ao seu líder o pagamento.' : '')+'\n\nPlanilha: https://docs.google.com/spreadsheets/d/'+PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID')});
         sheet.getRange(row,13).setValue('Enviado');
       } catch(mailError) { sheet.getRange(row,13).setValue('Falha: verificar execução'); console.error('Inscrição salva; falha na notificação por e-mail: '+mailError.message); }
     }
