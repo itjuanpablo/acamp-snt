@@ -59,6 +59,7 @@ function doPost(e) {
     }
   } catch(error) { console.error(error); result.error = 'Não foi possível registrar. Confira os dados ou entre em contato com a organização.'; }
   finally { if (lock.hasLock()) lock.releaseLock(); }
+  if (p.responseFormat === 'json') return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
   var data = JSON.stringify(result).replace(/</g,'\\u003c');
   return HtmlService.createHtmlOutput('<!doctype html><meta charset="utf-8"><p>Processamento concluído. Você pode voltar ao site.</p><script>window.top.postMessage('+data+','+JSON.stringify(origin)+');<\/script>').setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }

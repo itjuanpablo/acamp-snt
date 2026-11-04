@@ -8,4 +8,49 @@ form.paymentDate.max=new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Sao_Paul
 form.payment.addEventListener('change',updateSummary);updateSummary();
 if(window.RAIZES_CONFIG?.scriptUrl)note.textContent='A organização entrará em contato com as orientações de pagamento.';
 if(!tier){form.querySelector('button').disabled=true;note.textContent='O prazo de inscrição terminou em 6 de dezembro de 2026.'}
-form.addEventListener('submit',async e=>{e.preventDefault();if(!tier)return;if(!window.RAIZES_CONFIG?.scriptUrl){note.textContent='O formulário está em preparação. O envio ainda não está disponível; nenhum dado foi enviado.';return}const btn=form.querySelector('button');btn.disabled=true;note.textContent='Enviando sua solicitação…';const payload={...Object.fromEntries(new FormData(form)),requestId:crypto.randomUUID()};const frame=document.createElement('iframe');frame.hidden=true;frame.name='registration-'+payload.requestId;document.body.append(frame);const post=document.createElement('form');post.hidden=true;post.action=window.RAIZES_CONFIG.scriptUrl;post.method='POST';post.target=frame.name;for(const [name,value]of Object.entries(payload)){const input=document.createElement('input');input.name=name;input.value=value;post.append(input)}document.body.append(post);const onMessage=e=>{if(!/^https:\/\/(?:script\.google\.com|(?:[a-z0-9-]+[.-])?script\.googleusercontent\.com)$/.test(e.origin)||e.data?.requestId!==payload.requestId)return;clearTimeout(timer);window.removeEventListener('message',onMessage);btn.disabled=false;note.textContent=e.data.ok?'Solicitação recebida! A organização vai orientar você sobre o pagamento. Sua vaga será confirmada após a conferência.':e.data.error||'Não foi possível enviar. Tente novamente.';if(e.data.ok)form.reset();updateSummary();post.remove();frame.remove()};window.addEventListener('message',onMessage);const timer=setTimeout(()=>{window.removeEventListener('message',onMessage);note.textContent='Não foi possível confirmar o envio. Consulte a organização antes de tentar novamente.';btn.disabled=false;post.remove();frame.remove()},30000);post.submit()});
+let pendingSubmission;
+form.addEventListener('submit', async event => {
+  event.preventDefault();
+  const scriptUrl = window.RAIZES_CONFIG?.scriptUrl;
+  const button = form.querySelector('button');
+  if (!tier || !scriptUrl || button.disabled) return;
+
+  button.disabled = true;
+  note.textContent = 'Enviando sua solicitação…';
+  const fields = new URLSearchParams(new FormData(form));
+  const fingerprint = fields.toString();
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 60000);
+
+  try {
+    if (pendingSubmission?.fingerprint !== fingerprint) {
+      pendingSubmission = {fingerprint, requestId: crypto.randomUUID()};
+    }
+    const {requestId} = pendingSubmission;
+    fields.set('requestId', requestId);
+    fields.set('responseFormat', 'json');
+    const response = await fetch(scriptUrl, {
+      method: 'POST', body: fields, credentials: 'omit', signal: controller.signal
+    });
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+    const result = await response.json();
+    if (result.requestId !== requestId || typeof result.ok !== 'boolean') {
+      throw new Error('Resposta sem confirmação');
+    }
+    if (!result.ok) {
+      note.textContent = result.error || 'Não foi possível registrar a solicitação. Confira os dados.';
+      return;
+    }
+    pendingSubmission = undefined;
+    form.reset();
+    updateSummary();
+    note.textContent = 'Solicitação recebida! Sua vaga será confirmada após a conferência do pagamento.';
+  } catch {
+    note.textContent = pendingSubmission
+      ? 'Não recebemos a confirmação. Tente novamente sem alterar os dados para usar o mesmo protocolo: ' + pendingSubmission.requestId
+      : 'Não foi possível iniciar o envio. Abra o site no Safari ou Chrome e tente novamente.';
+  } finally {
+    clearTimeout(timer);
+    button.disabled = false;
+  }
+});
