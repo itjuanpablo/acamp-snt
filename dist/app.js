@@ -3,7 +3,7 @@ const tier=tiers.find(t=>Date.now()<new Date(t.end).getTime());
 const money=v=>v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 const form=document.querySelector('form'),note=document.querySelector('#form-note');
 document.querySelectorAll('[data-tier]').forEach(card=>{const n=Number(card.dataset.tier);card.classList.toggle('featured',n===tier?.number);card.querySelector('.status').textContent=n===tier?.number?'ABERTO':!tier||n<tier.number?'ENCERRADO':'EM BREVE';const a=card.querySelector('a');if(a&&n!==tier?.number)a.remove();if(n===tier?.number&&!a){card.querySelector('.tier-note')?.remove();const link=document.createElement('a');link.href='#inscricao';link.className='button';link.textContent='Escolher este lote ↗';card.append(link)}});
-function updateSummary(){document.querySelector('#cash-note').hidden=form.payment.value!=='Dinheiro';document.querySelector('#summary-tier').textContent=tier?`${tier.number}º lote`:'Inscrições encerradas';document.querySelector('#summary-price').textContent=tier?form.payment.value==='Crédito'?`${money(tier.credit)} · até ${tier.installments}x`:form.payment.value?money(tier.cash):`A partir de ${money(tier.cash)}`:'Prazo encerrado'}
+function updateSummary(){document.querySelector('#pix-note').hidden=form.payment.value!=='PIX';document.querySelector('#cash-note').hidden=form.payment.value!=='Dinheiro';document.querySelector('#summary-tier').textContent=tier?`${tier.number}º lote`:'Inscrições encerradas';document.querySelector('#summary-price').textContent=tier?form.payment.value==='Crédito'?`${money(tier.credit)} · até ${tier.installments}x`:form.payment.value?money(tier.cash):`A partir de ${money(tier.cash)}`:'Prazo encerrado'}
 form.paymentDate.max=new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Sao_Paulo'}).format(new Date());
 form.payment.addEventListener('change',updateSummary);updateSummary();
 if(window.RAIZES_CONFIG?.scriptUrl)note.textContent='A organização entrará em contato com as orientações de pagamento.';
@@ -41,10 +41,13 @@ form.addEventListener('submit', async event => {
       note.textContent = result.error || 'Não foi possível registrar a solicitação. Confira os dados.';
       return;
     }
+    const paidByPix = fields.get('payment') === 'PIX';
     pendingSubmission = undefined;
     form.reset();
     updateSummary();
-    note.textContent = 'Solicitação recebida! Sua vaga será confirmada após a conferência do pagamento.';
+    note.textContent = paidByPix
+      ? 'Solicitação recebida! ATENÇÃO: envie o comprovante PIX ao seu líder responsável. Sua inscrição só será validada após ele conferir o comprovante.'
+      : 'Solicitação recebida! Sua vaga será confirmada após a conferência do pagamento.';
   } catch {
     note.textContent = pendingSubmission
       ? 'Não recebemos a confirmação. Tente novamente sem alterar os dados para usar o mesmo protocolo: ' + pendingSubmission.requestId

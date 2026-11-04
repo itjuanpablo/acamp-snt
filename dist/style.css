@@ -4,3 +4,6 @@
 .brand{display:block;position:relative;width:112px;height:55px;overflow:hidden;flex-shrink:0}.brand img{position:absolute;max-width:none;width:650px;left:-283px;top:-13px}footer .brand{width:112px;height:55px}
 
 .cash-note{background:#e8ddc8;border-left:3px solid #8d643e;padding:13px;font-size:12px;line-height:1.7;color:#563c27}.cash-note[hidden]{display:none}.optional{font-weight:400;color:#8d7760}
+
+.pix-key{display:inline-block;margin-top:.35rem;font-size:1rem;font-weight:700;overflow-wrap:anywhere;max-width:100%}
+#pix-note p{margin:.65rem 0 0}
