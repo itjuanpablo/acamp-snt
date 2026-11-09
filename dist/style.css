@@ -7,3 +7,15 @@
 
 .pix-key{display:inline-block;margin-top:.35rem;font-size:1rem;font-weight:700;overflow-wrap:anywhere;max-width:100%}
 #pix-note p{margin:.65rem 0 0}
+
+/* Orientações exibidas antes do formulário de inscrição. */
+.registration{row-gap:clamp(30px,5vw,68px)}
+.registration-guide{grid-column:1/-1;padding:clamp(20px,4vw,42px);background:#fff9ed;border:2px solid #9e6941;border-top:6px solid #73431f;border-radius:12px;color:#39251a}
+.guide-badge{display:inline-block;padding:.45rem .75rem;background:#62391f;color:#fff9ed;border-radius:4px;font-size:.72rem;font-weight:800;letter-spacing:.12em}
+.registration .registration-guide h2{margin:.65rem 0;font-size:clamp(1.8rem,4vw,3rem);line-height:1.1}
+.guide-intro{margin:0 0 1.2rem;font-size:clamp(1rem,2.2vw,1.18rem)}
+.registration-guide ol{margin:0;padding-left:1.5rem;display:grid;gap:.65rem}
+.registration-guide li{padding:.35rem 0 .55rem .35rem;line-height:1.6}
+.registration-guide li+li{border-top:1px solid #dfc9b2}
+.registration-guide li::marker{color:#73431f;font-weight:800}
+.guide-closing{margin:1rem 0 0;color:#62391f;font-weight:700;line-height:1.5}
