@@ -26,6 +26,27 @@ function getSheet_() {
   var ss = SpreadsheetApp.openById(id);
   return ss.getSheetByName('Inscrições') || ss.insertSheet('Inscrições');
 }
+function existingRegistration_(sheet, p) {
+  var last = sheet.getLastRow();
+  if (last < 2) return null;
+  function normalize(value) {
+    return String(value || '').replace(/^'/, '').trim().toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ');
+  }
+  function phone(value) {
+    var digits = String(value || '').replace(/\D/g, '');
+    return /^55\d{10,11}$/.test(digits) ? digits.slice(2) : digits;
+  }
+  var name = normalize(p.name), email = normalize(p.email), number = phone(p.phone);
+  var rows = sheet.getRange(2, 1, last - 1, 9).getDisplayValues();
+  return rows.find(function(row) {
+    return row[0] === p.requestId ||
+      (normalize(row[2]) === name && (
+        (email && normalize(row[7]) === email) ||
+        (number && phone(row[8]) === number)
+      ));
+  }) || null;
+}
 function doPost(e) {
   var p = e.parameter || {}, result = {requestId:p.requestId,ok:false}, lock = LockService.getScriptLock();
   var origin = PropertiesService.getScriptProperties().getProperty('ALLOWED_ORIGIN');
@@ -39,13 +60,16 @@ function doPost(e) {
     if (['PIX','Dinheiro','Crédito'].indexOf(p.payment) < 0) throw new Error('Selecione uma forma de pagamento.');
     var today = Utilities.formatDate(new Date(),'America/Sao_Paulo','yyyy-MM-dd');
     if (p.paymentDate && (!/^\d{4}-\d{2}-\d{2}$/.test(p.paymentDate) || isNaN(Date.parse(p.paymentDate)) || new Date(p.paymentDate).toISOString().slice(0,10) !== p.paymentDate || p.paymentDate > today)) throw new Error('Data de pagamento inválida.');
-    var tier = today <= '2026-11-15' ? 1 : today <= '2026-11-30' ? 2 : today <= '2026-12-06' ? 3 : 0;
+    var tier = today <= '2026-11-22' ? 1 : today <= '2026-11-30' ? 2 : today <= '2026-12-06' ? 3 : 0;
     if (!tier) throw new Error('O prazo de inscrições terminou.');
     var prices = [[120,140],[150,180],[200,220]], price = prices[tier-1][p.payment === 'Crédito' ? 1 : 0];
     lock.waitLock(10000);
     var sheet = getSheet_();
     if (!sheet.getLastRow()) throw new Error('Execute setup() antes de liberar as inscrições.');
-    if (sheet.getLastRow() > 1 && sheet.getRange(2,1,sheet.getLastRow()-1,1).createTextFinder(p.requestId).matchEntireCell(true).findNext()) { result.ok = true; }
+    if (existingRegistration_(sheet, p)) {
+      result.ok = true;
+      result.duplicate = true;
+    }
     else {
       var safe = function(v) { return /^[=+@\-]/.test(v) ? "'"+v : v; };
       sheet.appendRow([p.requestId,new Date(),safe(p.name.trim()),safe(p.leader.trim()),safe(p.team.trim()),p.payment,p.paymentDate || '',safe(p.email.trim()),safe(p.phone),tier,price,'Autorizado em '+new Date().toISOString(),'Pendente',p.shirtSize]);

@@ -19,3 +19,9 @@
 .registration-guide li+li{border-top:1px solid #dfc9b2}
 .registration-guide li::marker{color:#73431f;font-weight:800}
 .guide-closing{margin:1rem 0 0;color:#62391f;font-weight:700;line-height:1.5}
+
+.registration-result{align-self:start;padding:clamp(20px,4vw,36px);background:#f4f7ea;color:#263b24;border:2px solid #698063;border-radius:12px;line-height:1.6}
+.registration-result[hidden],#registration-form[hidden]{display:none}
+.registration-result-icon{display:inline-grid;place-items:center;width:2.25rem;height:2.25rem;margin-bottom:.65rem;border-radius:50%;background:#344e31;color:#fff;font-size:1.2rem}
+.registration-result h3{font-weight:700;line-height:1.1}
+#registration-reopen{padding:.65rem .9rem;background:transparent;color:inherit;border:1px solid currentColor;border-radius:4px;cursor:pointer}
